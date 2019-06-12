@@ -22,7 +22,8 @@ public class GUI extends JFrame {
 	private JLabel tribeName= new JLabel("Tribe Name:               ");
 //	private JLabel tribeLeader= new JLabel("Tribe Leader:             ");
 	private JLabel armyCount= new JLabel("Square Population:              ");
-	private JLabel aiTurn= new JLabel("The computer elected to:FILLER TEXT");
+	private JLabel aiTurn1= new JLabel("The computer elected to first:FILLER TEXT");
+	private JLabel aiTurn2= new JLabel("Then the computer elected to:FILLER TEXT");
 	private JLabel playerRolls= new JLabel("You rolled:");
 	private JLabel aiRolls= new JLabel("Your opponent rolled:");
 	private MenuButton buildArmy= new MenuButton("Build a basic army?", 0);
@@ -94,7 +95,8 @@ public class GUI extends JFrame {
 		buttonBox.add(buildArmy);
 		buttonBox.add(clickTurn);
 		clickTurn.setVisible(false);
-		turnBox.add(aiTurn);
+		turnBox.add(aiTurn1);
+		turnBox.add(aiTurn2);
 		infoBox.add(turnBox);
 		infoBox.add(buttonBox);
 		rollBox.add(playerRolls);
@@ -141,7 +143,14 @@ public class GUI extends JFrame {
 
 	/** Process the ai's turn and surrounding events */
 	public void nextTurn() {
-		aiTurn();
+		// TODO add something to prevent the npc from just moving back and forth
+		grantArmies(npc1);// grant new armies to the npc
+		aiTurn(1);        // perform the first action
+		setSquareOwners();// update tile ownership
+		aiTurn(2);		  // perform the second action
+		setSquareOwners();// update tile ownership
+		grantArmies(player);// grant new armies to the player
+		resetPlayerTurn();  // restore agency to the player
 		clickTurn.setVisible(false);
 		buttonBox.setVisible(false);
 
@@ -165,7 +174,7 @@ public class GUI extends JFrame {
 			}
 			setRollLabels();
 
-			turn= 1;
+			decrementMoves();
 			currentlySelected= null;
 			buildArmy.setVisible(false);
 			clickTurn.setVisible(true);
@@ -400,7 +409,7 @@ public class GUI extends JFrame {
 				playerArmies.add(ms);
 			}
 			currentlySelected= null;
-			turn= 1;
+			decrementMoves();
 			setRollLabels();
 
 			// NEXT TURN
@@ -411,7 +420,8 @@ public class GUI extends JFrame {
 		endgame();
 
 		setArmyOwners();
-		turn= 1;
+		decrementMoves();
+		System.out.println(movesRemaining);
 
 	}
 
@@ -446,7 +456,6 @@ public class GUI extends JFrame {
 			// a non friendly block has been selected so stop showing province interaction buttons
 			buttonBox.setVisible(false);
 			currentlySelected= null;
-			turn= 0;
 		} else {
 			// display info about the square
 		}
@@ -485,33 +494,44 @@ public class GUI extends JFrame {
 
 	}
 
+	/** Prepare for the player's turn */
+	public void resetPlayerTurn() {
+		turn= 0;
+		movesRemaining= 2;
+	}
+
 	/** Calculate and process the ai's turn */
-	public void aiTurn() {
-		grantArmies(npc1);
+	public void aiTurn(int i) {
 		Random rand= new Random();
 		if (idealTurn(rand)) {
+			if (i == 1) {
+				aiTurn1.setText("<html><p>First the computer elected to: Invade an unoccupied square</p></html>");
+			} else aiTurn2.setText("<html><p>Then the computer elected to: Invade an unoccupied square</p></html>");
+
 			turnBox.setVisible(true);
 			endgame();
-			grantArmies(player);
-			turn= 0;
+
 			return;
 		}
 		if (battleTurn(rand)) {
-			aiTurn.setText("<html><p>The computer has elected to: Attack one of your armies </p></html>");
+			if (i == 1) {
+				aiTurn1.setText("<html><p>First the computer elected to: Attack one of your armies </p></html>");
+
+			} else aiTurn2.setText("<html><p>Then the computer elected to: Attack one of your armies </p></html>");
+
 			turnBox.setVisible(true);
 			endgame();
-			grantArmies(player);
-			turn= 0;
+
 			return;
 		}
 		// The computer must resort to building a new army in a random square
 		aiArmies.get(rand.nextInt(aiArmies.size())).addArmy(1);
-		aiTurn.setText("<html><p>The computer has elected to: Build a new army</p></html>");
+		if (i == 1) {
+			aiTurn1.setText("<html><p>First the computer elected to: Build a new army</p></html>");
+		} else aiTurn2.setText("<html><p>Then the computer elected to: Build a new army</p></html>");
 		turnBox.setVisible(true);
 		setRollLabels();
 		endgame();
-		grantArmies(player);
-		turn= 0;
 
 	}
 
@@ -555,7 +575,6 @@ public class GUI extends JFrame {
 				aiArmies.remove(ms); // This is probably not optimal, should probably find a way to use set if that's
 									 // better
 				aiArmies.add(idealSquare);
-				aiTurn.setText("<html><p>The computer has elected to: Invade an unoccupied square</p></html>");
 				return true;
 			}
 		}
