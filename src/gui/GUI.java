@@ -506,7 +506,9 @@ public class GUI extends JFrame {
 		if (idealTurn(rand)) {
 			if (i == 1) {
 				aiTurn1.setText("<html><p>First the computer elected to: Invade an unoccupied square</p></html>");
-			} else aiTurn2.setText("<html><p>Then the computer elected to: Invade an unoccupied square</p></html>");
+			} else {
+				aiTurn2.setText("<html><p>Then the computer elected to: Invade an unoccupied square</p></html>");
+			}
 
 			turnBox.setVisible(true);
 			endgame();
@@ -517,7 +519,9 @@ public class GUI extends JFrame {
 			if (i == 1) {
 				aiTurn1.setText("<html><p>First the computer elected to: Attack one of your armies </p></html>");
 
-			} else aiTurn2.setText("<html><p>Then the computer elected to: Attack one of your armies </p></html>");
+			} else {
+				aiTurn2.setText("<html><p>Then the computer elected to: Attack one of your armies </p></html>");
+			}
 
 			turnBox.setVisible(true);
 			endgame();
@@ -528,7 +532,9 @@ public class GUI extends JFrame {
 		aiArmies.get(rand.nextInt(aiArmies.size())).addArmy(1);
 		if (i == 1) {
 			aiTurn1.setText("<html><p>First the computer elected to: Build a new army</p></html>");
-		} else aiTurn2.setText("<html><p>Then the computer elected to: Build a new army</p></html>");
+		} else {
+			aiTurn2.setText("<html><p>Then the computer elected to: Build a new army</p></html>");
+		}
 		turnBox.setVisible(true);
 		setRollLabels();
 		endgame();

@@ -11,9 +11,9 @@ public class VictoryScreen extends JFrame {
 	public VictoryScreen(boolean victory) {
 		ImageIcon image= null;
 		if (victory) {
-			image= new ImageIcon("victoryScreen.jpg");
+			image= new ImageIcon("victory.png");
 		} else {
-			image= new ImageIcon("defeatScreen.jpg");
+			image= new ImageIcon("defeat.png");
 		}
 		JLabel imageLabel= new JLabel(image);
 		add(imageLabel);
