@@ -3,9 +3,9 @@ package gui;
 import javax.swing.JButton;
 
 public class MenuButton extends JButton {
-	public int TYPE; // type 0 is reserved for building an army
-					 // type 1 is reserved for the start menu
-					 // type 2 is reserved for the next turn button
+	/** The type of MenuButton this is. Type 0 is for building an army, type 1 is for starting the game,
+	 * type 2 is for proceeding to the next turn, 31-3x are for nation selection */
+	public int TYPE;
 
 	public MenuButton(String name, int type) {
 		super(name);

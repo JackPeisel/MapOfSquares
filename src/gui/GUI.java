@@ -29,8 +29,9 @@ public class GUI extends JFrame {
 	private MenuButton buildArmy= new MenuButton("Build a basic army?", 0);
 	private MenuButton startGame= new MenuButton("CLICK HERE TO START A NEW GAME", 1);
 	private MenuButton clickTurn= new MenuButton("Are you ready for the next turn?", 2);
-	public static Tribe player= new Tribe("Player1");
-	public static Tribe npc1= new Tribe("AI");
+	private JLabel nationPic= new JLabel(player.image);
+	public static Tribe player= new Tribe("Player1", 1);
+	public static Tribe npc1= new Tribe("AI", -1);
 	public ArrayList<MapSquare> playerArmies= new ArrayList<>();
 	public ArrayList<MapSquare> playerTiles= new ArrayList<>();
 	public ArrayList<MapSquare> aiTiles= new ArrayList<>();
@@ -46,17 +47,27 @@ public class GUI extends JFrame {
 	private Box turnBox= new Box(BoxLayout.Y_AXIS);
 	private Box rollBox= new Box(BoxLayout.Y_AXIS);
 	private Box startBox= new Box(BoxLayout.Y_AXIS);
-	public int turn= 0; // turn 0 means it is the player's turn, turn 1 means it is the computer's turn
-	public int dimensionX= 5; // these give the dimensions of the map
+	private Box startChoiceBox= new Box(BoxLayout.X_AXIS);
+	private Box startButtonBox= new Box(BoxLayout.Y_AXIS);
+	/** A representation of whose turn it is currently in the game turn 0 means it is the player's turn,
+	 * turn 1 means it is the computer's turn. turn= -1 means the game has not started yet */
+	public int turn= -1;
+	/** The width(in MapSquares) of the game board */
+	public int dimensionX= 5;
+	/** The height(in MapSquares) of the game board */
 	public int dimensionY= 5;
-	public int invade= 0; // if invade is 1 then the next click on a square means the intent is to invade
-	public int movesRemaining= 2; // the number of moves remaining left for the player
+	/** Keeps track of whether the next click the player makes is one with intent to invade if invade is
+	 * 1 then the next click is one with intent to invade, if invade is 0 then the next click is not
+	 * intended as an invade */
+	public int invade= 0;
+	/** The number of remaining moves the player has to make */
+	public int movesRemaining= 2;
 
 	public GUI() {
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		addSquares();
-		startGame.addMouseListener(mouseEvent);
-		startBox.add(startGame);
+		// newInstance(); don't call this here as any start game bonuses will be messed up
+		addStart();
 		add(startBox, BorderLayout.CENTER);
 		mainGameBox.setVisible(false);
 		pack();
@@ -66,9 +77,27 @@ public class GUI extends JFrame {
 
 	/** set up the start menu, includes adding check boxes for colors */
 	public void addStart() {
+		startGame.addMouseListener(mouseEvent);
+		startBox.add(startGame);
+		// For later when adding constants, the types are in the 30s because this is the 3rd type of button
+		// added
+		MenuButton nation1= new MenuButton("PLAY NATION 1", 31);
+		MenuButton nation2= new MenuButton("PLAY NATION 2", 32);
+		MenuButton nation3= new MenuButton("PLAY NATION 3", 33);
+		nation1.addMouseListener(mouseEvent);
+		nation2.addMouseListener(mouseEvent);
+		nation3.addMouseListener(mouseEvent);
+		startButtonBox.add(nation1);
+		startButtonBox.add(nation2);
+		startButtonBox.add(nation3);
+		startChoiceBox.add(startButtonBox);
+		startChoiceBox.add(nationPic); // requires it to not be null, ie requires a temp image(nation 1)
+		startBox.add(startChoiceBox);
+		// startBox.add(Box.createGlue());
 
 	}
 
+	/** Configures the Java Boxes that make up the game. Sets up the game grid and buttons */
 	public void addSquares() {
 		board= new MapSquare[dimensionX][dimensionY];
 		// invariant: rows 0..i-1 have been set up
@@ -108,7 +137,6 @@ public class GUI extends JFrame {
 		turnBox.setVisible(false);
 		buttonBox.setVisible(false);
 		rollBox.setVisible(false);
-		newInstance();
 
 	}
 
@@ -117,7 +145,18 @@ public class GUI extends JFrame {
 		Random rand= new Random();
 		int initX= rand.nextInt(dimensionX);
 		int initY= rand.nextInt(dimensionY);
-		board[initX][initY].changeTribe(player, Color.BLUE);
+		board[initX][initY].changeTribe(player, player.color);
+		if (player.type == 1) {
+			board[initX][initY].addArmy(1);
+		}
+		if (player.type == 2) {
+			ArrayList<MapSquare> bonus= validAdjacents(board[initX][initY]);
+			bonus.get(0).changeTribe(player, player.color);
+			bonus.get(0).removeArmy();
+			bonus.get(1).changeTribe(player, player.color);
+			bonus.get(1).removeArmy();
+
+		}
 		int aix= rand.nextInt(dimensionX);
 		int aiy= rand.nextInt(dimensionY);
 		while (aix == initX && aiy == initY) {
@@ -181,10 +220,12 @@ public class GUI extends JFrame {
 			// NEXT TURN
 
 		}
-		if (turn == 0 & mb.TYPE == 1) {
+		if (turn == -1 & mb.TYPE == 1) {
+			newInstance();
 			System.out.println("button processed");
 			mainGameBox.setVisible(true);
 			remove(startBox);
+			turn= 0;
 			add(mainGameBox, BorderLayout.CENTER);
 			pack();
 
@@ -192,6 +233,16 @@ public class GUI extends JFrame {
 		if (mb.TYPE == 2) {
 			turn= 0;
 			nextTurn();
+		}
+		if (mb.TYPE > 29 && mb.TYPE < 40) {
+			int temp= mb.TYPE - 30;
+			player.changeTribe(temp);
+			startChoiceBox.remove(nationPic);
+			nationPic= new JLabel(player.image);
+			startChoiceBox.add(nationPic);
+			pack();
+			// System.out.println("nation change test");
+
 		}
 
 	}
@@ -228,8 +279,8 @@ public class GUI extends JFrame {
 		}
 		int attackHost= howManyAttackers(currentlySelected);
 		int defenseHost= howManyDefenders(ms);
-		LinkedList<Integer> attackerRolls= rolls(attackHost);
-		LinkedList<Integer> defenderRolls= rolls(defenseHost);
+		LinkedList<Integer> attackerRolls= rolls(attackHost, true);
+		LinkedList<Integer> defenderRolls= rolls(defenseHost, false);
 		playerRolls.setText("You rolled: " + attackerRolls);
 		aiRolls.setText("Your opponent rolled: " + defenderRolls);
 		setRollLabels();
@@ -257,8 +308,8 @@ public class GUI extends JFrame {
 	public boolean aiConquest(MapSquare ds, MapSquare as) {
 		int attackHost= howManyAttackers(as);
 		int defenseHost= howManyDefenders(ds);
-		LinkedList<Integer> attackerRolls= rolls(attackHost);
-		LinkedList<Integer> defenderRolls= rolls(defenseHost);
+		LinkedList<Integer> attackerRolls= rolls(attackHost, false);
+		LinkedList<Integer> defenderRolls= rolls(defenseHost, true);
 		playerRolls.setText("You rolled: " + defenderRolls);
 		aiRolls.setText("Your opponent rolled: " + attackerRolls);
 		if (attackHost > 1 && defenseHost == 2) {
@@ -349,8 +400,10 @@ public class GUI extends JFrame {
 		setArmyOwners();
 	}
 
+	/** Transfer occupation of ms to the player, and transfer the players armies to this newly conquered
+	 * square, ms */
 	public void occupy(MapSquare ms) { // add in a check for whether it is the player or opponent occupying
-		ms.changeTribe(currentlySelected.tribe, Color.BLUE);
+		ms.changeTribe(player, player.color);
 		ms.addArmy(currentlySelected.army);
 		currentlySelected.removeArmy();
 		ms.army= ms.army - 1;
@@ -370,15 +423,19 @@ public class GUI extends JFrame {
 	}
 
 	/** return a list of the top values from n dice rolls. If the list of top values is of length
-	 * greater than 0 then the first int is the largest int.
+	 * greater than 0 then the first int is the largest int. boolean attack dictates whether these rolls
+	 * are for the player or not
 	 *
 	 * Precondition: n is equal to either 1, 2, or 3 */
-	public LinkedList<Integer> rolls(int n) {
+	public LinkedList<Integer> rolls(int n, boolean playerRoll) {
 		Random rand= new Random();
 		LinkedList<Integer> chances= new LinkedList<>();
 		LinkedList<Integer> topValues= new LinkedList<>();
 		for (int i= 0; i < n; i++ ) {
 			chances.add(rand.nextInt(6) + 1);
+		}
+		if (playerRoll && player.type == 3) {
+			chances.add(rand.nextInt(6));
 		}
 		if (n == 1) {
 			topValues.add(maxValue(chances));
@@ -448,9 +505,13 @@ public class GUI extends JFrame {
 			provinceSelect(ms);
 
 		} else if (turn == 0 && ms.tribe == player && currentlySelected == ms && currentlySelected.army > 0) {
-			// Select the army on ms rather than the province
+			// Select the army on ms rather than the province. If this occurs then cease execution of this
+			// method
 			invade= 1;
 			buttonBox.setVisible(false);
+			endgame();
+			updateInfo(ms);
+			return;
 
 		} else if (turn == 0 && ms.tribe != player && currentlySelected != ms) {
 			// a non friendly block has been selected so stop showing province interaction buttons
@@ -462,10 +523,11 @@ public class GUI extends JFrame {
 		// ms.addArmy(1, 10);
 		endgame();
 		updateInfo(ms);
+		invade= 0;
 
 	}
 
-	/** returns an adjacent, empty square to square ms */
+	/** returns a list of adjacent, empty squares to square ms */
 	public ArrayList<MapSquare> validAdjacents(MapSquare ms) {
 		ArrayList<MapSquare> accum= new ArrayList<>();
 		for (MapSquare[] a : board) {

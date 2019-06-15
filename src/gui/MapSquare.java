@@ -12,12 +12,17 @@ public class MapSquare extends Canvas {
 	public static final int EMPTY= 0;  // Constants used to indicate
 	public static final int FRIENDLY= 1;    // what is on a square.
 	public static final int ENEMY= 2;
-	public Tribe nullTribe= new Tribe("kappa");
+	public Tribe nullTribe= new Tribe("kappa", 0);
 
+	/** The color of the MapSquare */
 	public Color color;
+	/** The tribe in control of the MapSquare */
 	public Tribe tribe;
+	/** The row of the board the MapSquare is on */
 	public int row;
+	/** The column of the board the Mapsquare is on */
 	public int col;
+	/** The number of armies present on the MapSquare */
 	public int army;
 	public Rectangle b;
 
@@ -26,11 +31,12 @@ public class MapSquare extends Canvas {
 		col= c;
 
 		if ((c + r) % 2 == 1) {
-			setBackground(Color.DARK_GRAY);
 			color= Color.DARK_GRAY;
+			setBackground(color);
+
 		} else {
-			setBackground(Color.GRAY);
 			color= Color.GRAY;
+			setBackground(color);
 		}
 		Dimension size= new Dimension(40, 40);
 		setSize(size);
