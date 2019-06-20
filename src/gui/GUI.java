@@ -20,15 +20,15 @@ public class GUI extends JFrame {
 	private static final long serialVersionUID= 1L;
 	private MouseEvents mouseEvent= new MouseEvents(); // object that processes mouse clicks
 	private JLabel tribeName= new JLabel("Tribe Name:               ");
-//	private JLabel tribeLeader= new JLabel("Tribe Leader:             ");
-	private JLabel armyCount= new JLabel("Square Population:              ");
+	private JLabel squarePop= new JLabel("Province Population:             ");
+	private JLabel armyCount= new JLabel("Armies Present:              ");
 	private JLabel aiTurn1= new JLabel("The computer elected to first:FILLER TEXT");
 	private JLabel aiTurn2= new JLabel("Then the computer elected to:FILLER TEXT");
 	private JLabel playerRolls= new JLabel("You rolled:");
 	private JLabel aiRolls= new JLabel("Your opponent rolled:");
 	private MenuButton buildArmy= new MenuButton("Build a basic army?", 0);
 	private MenuButton startGame= new MenuButton("CLICK HERE TO START A NEW GAME", 1);
-	private MenuButton clickTurn= new MenuButton("Are you ready for the next turn?", 2);
+	private MenuButton clickTurn= new MenuButton("Next Turn?", 2);
 	private JLabel nationPic= new JLabel(player.image);
 	public static Tribe player= new Tribe("Player1", 1);
 	public static Tribe npc1= new Tribe("AI", -1);
@@ -37,6 +37,8 @@ public class GUI extends JFrame {
 	public ArrayList<MapSquare> aiTiles= new ArrayList<>();
 	public ArrayList<MapSquare> aiArmies= new ArrayList<>();
 
+	/** The Mapsquare which is currently selected by the player or computer opponent. null if there is
+	 * not currently selected square */
 	private MapSquare currentlySelected= null;
 
 	MapSquare[][] board;
@@ -118,6 +120,7 @@ public class GUI extends JFrame {
 		infoBox.add(tribeName);
 		// infoBox.add(tribeLeader);
 		infoBox.add(armyCount);
+		infoBox.add(squarePop);
 		mainGameBox.add(infoBox);
 		buildArmy.addMouseListener(mouseEvent);
 		clickTurn.addMouseListener(mouseEvent);
@@ -182,7 +185,7 @@ public class GUI extends JFrame {
 
 	/** Process the ai's turn and surrounding events */
 	public void nextTurn() {
-		// TODO add something to prevent the npc from just moving back and forth
+		setArmyOwners();
 		grantArmies(npc1);// grant new armies to the npc
 		aiTurn(1);        // perform the first action
 		setSquareOwners();// update tile ownership
@@ -199,7 +202,8 @@ public class GUI extends JFrame {
 	public void updateInfo(MapSquare ms) {
 		tribeName.setText("Tribe Name:" + ms.tribe.name + "           ");
 		// tribeLeader.setText("Tribe Leader:" + ms.tribe.chief.name + " ");
-		armyCount.setText("Square Population:" + ms.army + "          ");
+		armyCount.setText("Armies Present:" + ms.army + "          ");
+		squarePop.setText("Province Population:" + ms.pop + "         ");
 
 	}
 
@@ -208,15 +212,19 @@ public class GUI extends JFrame {
 		if (turn == 0 && mb.TYPE == 0) {
 			currentlySelected.addArmy(1);
 			updateInfo(currentlySelected);
+			/*
 			if (!playerArmies.contains(currentlySelected)) {
 				playerArmies.add(currentlySelected);
 			}
+			*/
 			setRollLabels();
 
 			decrementMoves();
 			currentlySelected= null;
 			buildArmy.setVisible(false);
-			clickTurn.setVisible(true);
+			if (movesRemaining == 0) {
+				clickTurn.setVisible(true);
+			}
 			// NEXT TURN
 
 		}
@@ -284,13 +292,25 @@ public class GUI extends JFrame {
 		playerRolls.setText("You rolled: " + attackerRolls);
 		aiRolls.setText("Your opponent rolled: " + defenderRolls);
 		setRollLabels();
+		// Is the defending tile a mountain?
+		boolean feature= ms.feature && ms.pop <= 2;
 		if (attackHost > 1 && defenseHost == 2) {
 			// 2 or more attacker rolls and 2 defender rolls
-			battle(attackerRolls.poll(), defenderRolls.poll(), currentlySelected, ms);
-			battle(attackerRolls.poll(), defenderRolls.poll(), currentlySelected, ms);
+			if (feature) {
+				battle(attackerRolls.poll() - 1, defenderRolls.poll(), currentlySelected, ms);
+				battle(attackerRolls.poll() - 1, defenderRolls.poll(), currentlySelected, ms);
+			} else {
+				battle(attackerRolls.poll(), defenderRolls.poll(), currentlySelected, ms);
+				battle(attackerRolls.poll(), defenderRolls.poll(), currentlySelected, ms);
+			}
 		} else {
 			// Any other combination of rolls
-			battle(attackerRolls.poll(), defenderRolls.poll(), currentlySelected, ms);
+			if (feature) {
+				battle(attackerRolls.poll() - 1, defenderRolls.poll(), currentlySelected, ms);
+			} else {
+				battle(attackerRolls.poll(), defenderRolls.poll(), currentlySelected, ms);
+
+			}
 		}
 		// Now the battle has commenced, check whether the defender has any more armies left, then move in
 		// if possible
@@ -303,7 +323,7 @@ public class GUI extends JFrame {
 		return true;
 	}
 
-	/** an ai army has moved into ds from as , which is occupied by an ally, let the battle commence. If
+	/** an ai army has moved from as into ds, which is occupied by an ally, let the battle commence. If
 	 * the invading army is victorious then change the ownership of this square */
 	public boolean aiConquest(MapSquare ds, MapSquare as) {
 		int attackHost= howManyAttackers(as);
@@ -312,13 +332,27 @@ public class GUI extends JFrame {
 		LinkedList<Integer> defenderRolls= rolls(defenseHost, true);
 		playerRolls.setText("You rolled: " + defenderRolls);
 		aiRolls.setText("Your opponent rolled: " + attackerRolls);
+		// Is the defending tile a mountain?
+		boolean feature= ds.feature && ds.pop <= 2;
 		if (attackHost > 1 && defenseHost == 2) {
 			// 2 or more attacker rolls and 2 defender rolls
-			battle(attackerRolls.poll(), defenderRolls.poll(), as, ds);
-			battle(attackerRolls.poll(), defenderRolls.poll(), as, ds);
+			if (feature) {
+				battle(attackerRolls.poll() - 1, defenderRolls.poll(), as, ds);
+				battle(attackerRolls.poll() - 1, defenderRolls.poll(), as, ds);
+			} else {
+				battle(attackerRolls.poll(), defenderRolls.poll(), as, ds);
+				battle(attackerRolls.poll(), defenderRolls.poll(), as, ds);
+			}
+
 		} else {
 			// Any other combination of rolls
-			battle(attackerRolls.poll(), defenderRolls.poll(), as, ds);
+			if (feature) {
+				battle(attackerRolls.poll() - 1, defenderRolls.poll(), as, ds);
+
+			} else {
+				battle(attackerRolls.poll(), defenderRolls.poll(), as, ds);
+
+			}
 		}
 		if (ds.army == 0) {
 			ds.changeTribe(npc1, Color.RED);
@@ -380,6 +414,11 @@ public class GUI extends JFrame {
 					if (!playerArmies.contains(e)) {
 						playerArmies.add(e);
 					}
+				} else if (e.pop >= 10) {
+					e.addArmy(1);
+					if (!playerArmies.contains(e)) {
+						playerArmies.add(e);
+					}
 				}
 			}
 
@@ -388,6 +427,11 @@ public class GUI extends JFrame {
 			for (MapSquare e : aiTiles) {
 				int i= rand.nextInt(20);
 				if (i < 2) {
+					e.addArmy(1);
+					if (!aiArmies.contains(e)) {
+						aiArmies.add(e);
+					}
+				} else if (e.pop >= 10) {
 					e.addArmy(1);
 					if (!aiArmies.contains(e)) {
 						aiArmies.add(e);
@@ -497,14 +541,14 @@ public class GUI extends JFrame {
 			invade= 0;
 			processArmyMove(ms);
 			updateInfo(ms);
+			currentlySelected= null;
 			return;
 		}
-		if (turn == 0 && ms.tribe == player && currentlySelected == null) {// must change this since need to ask user
-			// which they want
-			// Select the square, so call a method to handle the second click
+		if (turn == 0 && ms.tribe == player && currentlySelected == null) {
 			provinceSelect(ms);
 
-		} else if (turn == 0 && ms.tribe == player && currentlySelected == ms && currentlySelected.army > 0) {
+		} else if (turn == 0 && ms.tribe == player && currentlySelected == ms &&
+			playerArmies.contains(currentlySelected)) {
 			// Select the army on ms rather than the province. If this occurs then cease execution of this
 			// method
 			invade= 1;
@@ -532,7 +576,7 @@ public class GUI extends JFrame {
 		ArrayList<MapSquare> accum= new ArrayList<>();
 		for (MapSquare[] a : board) {
 			for (MapSquare b : a) {
-				if (b.isEmpty() && b.isValidInvade(ms)) accum.add(b);
+				if (b != currentlySelected && b.isEmpty() && b.isValidInvade(ms)) accum.add(b);
 			}
 
 		}
@@ -546,7 +590,7 @@ public class GUI extends JFrame {
 		ArrayList<MapSquare> accum= new ArrayList<>();
 		for (MapSquare[] a : board) {
 			for (MapSquare b : a) {
-				if (b.army == army && b.isValidInvade(ms)) accum.add(b);
+				if (b != currentlySelected && b.army == army && b.isValidInvade(ms)) accum.add(b);
 			}
 
 		}
@@ -556,8 +600,24 @@ public class GUI extends JFrame {
 
 	}
 
+	/** returns a list of adjacent, empty squares to square ms that are not of tribe t */
+	public ArrayList<MapSquare> validAdjacents(MapSquare ms, Tribe t) {
+		ArrayList<MapSquare> accum= new ArrayList<>();
+		for (MapSquare[] a : board) {
+			for (MapSquare b : a) {
+				if (b.tribe != t && b != currentlySelected && b.isEmpty() && b.isValidInvade(ms)) accum.add(b);
+
+			}
+
+		}
+		Random rand= new Random();
+		if (accum.size() == 0) return null;
+		return accum;
+	}
+
 	/** Prepare for the player's turn */
 	public void resetPlayerTurn() {
+		currentlySelected= null;
 		turn= 0;
 		movesRemaining= 2;
 	}
@@ -570,6 +630,7 @@ public class GUI extends JFrame {
 				aiTurn1.setText("<html><p>First the computer elected to: Invade an unoccupied square</p></html>");
 			} else {
 				aiTurn2.setText("<html><p>Then the computer elected to: Invade an unoccupied square</p></html>");
+				currentlySelected= null;
 			}
 
 			turnBox.setVisible(true);
@@ -577,12 +638,27 @@ public class GUI extends JFrame {
 
 			return;
 		}
+
 		if (battleTurn(rand)) {
 			if (i == 1) {
 				aiTurn1.setText("<html><p>First the computer elected to: Attack one of your armies </p></html>");
 
 			} else {
 				aiTurn2.setText("<html><p>Then the computer elected to: Attack one of your armies </p></html>");
+				currentlySelected= null;
+			}
+
+			turnBox.setVisible(true);
+			endgame();
+
+			return;
+		}
+		if (emptyInvadeTurn(rand)) {
+			if (i == 1) {
+				aiTurn1.setText("<html><p>First the computer elected to: Invade an unoccupied square</p></html>");
+			} else {
+				aiTurn2.setText("<html><p>Then the computer elected to: Invade an unoccupied square</p></html>");
+				currentlySelected= null;
 			}
 
 			turnBox.setVisible(true);
@@ -596,6 +672,7 @@ public class GUI extends JFrame {
 			aiTurn1.setText("<html><p>First the computer elected to: Build a new army</p></html>");
 		} else {
 			aiTurn2.setText("<html><p>Then the computer elected to: Build a new army</p></html>");
+			currentlySelected= null;
 		}
 		turnBox.setVisible(true);
 		setRollLabels();
@@ -611,14 +688,17 @@ public class GUI extends JFrame {
 			ArrayList<MapSquare> adjacents= validAdjacents(ms, 1);
 			if (adjacents != null) {
 				aiConquest(adjacents.get(rand.nextInt(adjacents.size())), ms);
+				currentlySelected= ms;
 				return true;
 
 			}
 		}
+		currentlySelected= null;
 		for (MapSquare ms : aiArmies) {
 			ArrayList<MapSquare> adjacents= validAdjacents(ms, 2);
 			if (adjacents != null) {
 				aiConquest(adjacents.get(rand.nextInt(adjacents.size())), ms);
+				currentlySelected= ms;
 				return true;
 
 			}
@@ -627,9 +707,9 @@ public class GUI extends JFrame {
 		return false;
 	}
 
-	/** Return true if the ideal turn is able to be performed, false otherwise. If the turn is able to
-	 * be performed then perform it */
-	public boolean idealTurn(Random rand) {
+	/** Return true if an empty square is able to be invaded, false otherwise. If the turn is able to be
+	 * performed then perform it */
+	public boolean emptyInvadeTurn(Random rand) {
 		// the first MapSquare in aiArmies that has a valid and ideal adjacent tile will be used
 		for (MapSquare ms : aiArmies) {
 			ArrayList<MapSquare> adjacents= validAdjacents(ms);
@@ -643,11 +723,35 @@ public class GUI extends JFrame {
 				aiArmies.remove(ms); // This is probably not optimal, should probably find a way to use set if that's
 									 // better
 				aiArmies.add(idealSquare);
+				currentlySelected= ms;
 				return true;
 			}
 		}
 		return false;
 
+	}
+
+	/** Return true if an empty, non-allied square is able to be invaded, false otherwise. If the turn
+	 * is able to be performed then perform it */
+	public boolean idealTurn(Random rand) {
+		// the first MapSquare in aiArmies that has a valid and ideal adjacent tile will be used
+		for (MapSquare ms : aiArmies) {
+			ArrayList<MapSquare> adjacents= validAdjacents(ms, npc1);
+			if (adjacents != null) {
+
+				MapSquare idealSquare= adjacents.get(rand.nextInt(adjacents.size()));
+				idealSquare.changeTribe(npc1, Color.RED);
+				idealSquare.addArmy(ms.army);
+				idealSquare.army= idealSquare.army - 1;
+				ms.removeArmy();
+				aiArmies.remove(ms); // This is probably not optimal, should probably find a way to use set if that's
+									 // better
+				aiArmies.add(idealSquare);
+				currentlySelected= ms;
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** Checks whether one of the players is out of armies and has thus lost, and thus takes appropriate

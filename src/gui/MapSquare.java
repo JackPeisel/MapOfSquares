@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Rectangle;
+import java.util.Random;
 
 import game.Tribe;
 
@@ -24,6 +25,11 @@ public class MapSquare extends Canvas {
 	public int col;
 	/** The number of armies present on the MapSquare */
 	public int army;
+	/** The population of the province */
+	public int pop;
+	/** True if mountains and etc are present, false otherwise */
+	public boolean feature= coinFlip();
+
 	public Rectangle b;
 
 	public MapSquare(int r, int c) {
@@ -38,19 +44,36 @@ public class MapSquare extends Canvas {
 			color= Color.GRAY;
 			setBackground(color);
 		}
-		Dimension size= new Dimension(40, 40);
+		Dimension size= new Dimension(80, 80);
 		setSize(size);
 		b= getBounds();
 		repaint();
 		tribe= nullTribe;
+		Random rand= new Random();
+		pop= rand.nextInt(10) + 1;
+	}
+
+	/** Return true approximately half the time, false the other half */
+	public boolean coinFlip() {
+		return 1 == new Random().nextInt(2);
 	}
 
 	/** Paint the square with graphics g */
 	@Override
 	public void paint(Graphics g) {
-		if (tribe == nullTribe) return;
-
 		Color save= g.getColor(); // Save the color, to be reset at end
+
+		if (tribe == nullTribe) {
+			g.setColor(Color.WHITE);
+			if (pop >= 10) {
+				g.drawRect(b.width / 3, b.height / 3, b.width / 3, b.height / 3);
+			} else if (feature && pop <= 2) {
+				// draw a mountain
+				g.drawLine(b.x + b.width / 3, b.y + 2 * b.height / 3, b.x + b.width / 2, b.y + b.height / 3);
+				g.drawLine(b.x + b.width / 2, b.y + b.height / 3, b.x + 2 * b.width / 3, b.y + 2 * b.height / 3);
+			}
+			return;
+		}
 
 		if (tribe == GUI.player) {
 			g.setColor(Color.GREEN);
@@ -61,7 +84,17 @@ public class MapSquare extends Canvas {
 		}
 		if (army > 0) {
 			g.drawString("" + army, b.x, b.y + b.height / 3);
+
 		}
+		g.setColor(Color.WHITE);
+		if (pop >= 10) {
+			g.drawRect(b.width / 3, b.height / 3, b.width / 3, b.height / 3);
+		} else if (feature && pop <= 2) {
+			// draw a mountain
+			g.drawLine(b.x + b.width / 3, b.y + 2 * b.height / 3, b.x + b.width / 2, b.y + b.height / 3);
+			g.drawLine(b.x + b.width / 2, b.y + b.height / 3, b.x + 2 * b.width / 3, b.y + 2 * b.height / 3);
+		}
+
 		g.drawRect(b.x, b.y, b.width, b.height);
 
 		g.setColor(save);
