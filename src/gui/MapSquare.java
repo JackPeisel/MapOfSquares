@@ -124,6 +124,39 @@ public class MapSquare extends Canvas {
 		repaint();
 	}
 
+	/** Decreases the pop of the square by x, to a minimum of 0 */
+	public void decreasePop(int x) {
+		pop= pop - x;
+		if (pop < 0) {
+			pop= 0;
+		}
+		repaint();
+	}
+
+	/** Increases the pop of the square by x, to a maximum of 10 */
+	public void increasePop(int x) {
+		pop= pop + x;
+		if (pop > 10) {
+			pop= 10;
+		}
+		repaint();
+	}
+
+	/** Sets the number of armies present on this MapSquare to newArmy */
+	public void setArmy(int newArmy) {
+		army= newArmy;
+		repaint();
+	}
+
+	/** Decreases the number of armies present by x, to a minimum of 0 */
+	public void decreaseArmy(int x) {
+		army= army - x;
+		if (army < 0) {
+			army= 0;
+		}
+		repaint();
+	}
+
 	/** return true if this is a valid square for the army at root to invade, ie is this a square
 	 * adjacent to root */
 	public boolean isValidInvade(MapSquare root) {
@@ -135,7 +168,7 @@ public class MapSquare extends Canvas {
 		return false;
 	}
 
-	/** return true if this tile is empty */
+	/** return true if this tile has no armies present on it */
 	public boolean isEmpty() {
 		return army == 0;
 	}

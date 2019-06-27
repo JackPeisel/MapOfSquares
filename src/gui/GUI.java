@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 
 import javax.swing.Box;
@@ -18,6 +19,9 @@ import game.Tribe;
 
 public class GUI extends JFrame {
 	private static final long serialVersionUID= 1L;
+	/** A list of all possible events that can occur at the start of a turn */
+	public static final ArrayList<String> randomEvents= new ArrayList<>();
+	public ArrayList<String> currentRandomEvents= new ArrayList<>();
 	private MouseEvents mouseEvent= new MouseEvents(); // object that processes mouse clicks
 	private JLabel tribeName= new JLabel("Tribe Name:               ");
 	private JLabel squarePop= new JLabel("Province Population:             ");
@@ -64,12 +68,15 @@ public class GUI extends JFrame {
 	public int invade= 0;
 	/** The number of remaining moves the player has to make */
 	public int movesRemaining= 2;
+	/** A boolean representing whether the game is frozen(typically by an event) */
+	public boolean frozen= false;
 
 	public GUI() {
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		addSquares();
 		// newInstance(); don't call this here as any start game bonuses will be messed up
 		addStart();
+		addEvents();
 		add(startBox, BorderLayout.CENTER);
 		mainGameBox.setVisible(false);
 		pack();
@@ -96,6 +103,23 @@ public class GUI extends JFrame {
 		startChoiceBox.add(nationPic); // requires it to not be null, ie requires a temp image(nation 1)
 		startBox.add(startChoiceBox);
 		// startBox.add(Box.createGlue());
+
+	}
+
+	/** Fill the list randomEvents with the possible names of events that occur randomly. Additionally
+	 * set the currentRandomEvents list to be equal to the randomEvents list */
+	public void addEvents() {
+		addToRandom("Famine");
+		addToRandom("Bountiful Harvest");
+		addToRandom("Rally to the Flag");
+		addToRandom("Supply Shortage");
+
+	}
+
+	/** Add an event to the randomEvents and currentRandomEvents lists */
+	public void addToRandom(String event) {
+		randomEvents.add(event);
+		currentRandomEvents.add(event);
 
 	}
 
@@ -193,6 +217,7 @@ public class GUI extends JFrame {
 		setSquareOwners();// update tile ownership
 		grantArmies(player);// grant new armies to the player
 		resetPlayerTurn();  // restore agency to the player
+		eventRoll(player);
 		clickTurn.setVisible(false);
 		buttonBox.setVisible(false);
 
@@ -255,6 +280,15 @@ public class GUI extends JFrame {
 
 	}
 
+	/** Return a MapSquare from list that has army armies present on it. If list does not contain any
+	 * MapSquares with army armies present then return the square with the most armies present */
+	public MapSquare randomSquare(List<MapSquare> list, int army) {
+		for (MapSquare e : list) {
+			if (e.army == army) { return e; }
+		}
+		return mostArmies(list);
+	}
+
 	/** Sets the roll labels to invisible if they are not already invisible */
 	public void setRollLabels() {
 		if (rollBox.isVisible()) {
@@ -276,9 +310,100 @@ public class GUI extends JFrame {
 		return ms.army;
 	}
 
+	/** Check for whether a random event will occur. If the event should occur then execute the event
+	 * call on a random square/group of squares */
+	public boolean eventRoll(Tribe tribe) {
+		Random rand= new Random();
+		if (rand.nextInt(10) != 0) { return false; }
+		String eventType= randomEvents.get(rand.nextInt(randomEvents.size()));
+		if (EventWindow.isChoice(eventType)) {
+
+		} else processRandomEvent(eventType, tribe, rand);
+
+		return true;
+	}
+
+	/** Processes a random event with no choices */
+	public void processRandomEvent(String type, Tribe tribe, Random rand) {
+		MapSquare origin;
+		if (tribe == player) {
+			origin= playerTiles.get(rand.nextInt(playerTiles.size()));
+		} else {
+			origin= aiTiles.get(rand.nextInt(aiTiles.size()));
+		}
+		LinkedList<MapSquare> adjacents= allAdjacents(origin);
+		LinkedList<MapSquare> squares= new LinkedList<>();
+		squares.add(origin);
+		squares.add(adjacents.poll());
+		squares.add(adjacents.poll());
+		if (type == "Famine") {
+			for (MapSquare e : squares) {
+				e.decreasePop(2);
+			}
+		}
+		if (type == "Bountiful Harvest") {
+			for (MapSquare e : squares) {
+				e.increasePop(2);
+			}
+		}
+		if (type == "Rally to the Flag") {
+			if (tribe == player) {
+				origin= randomSquare(playerArmies, 1);
+			} else { // tribe==npc1
+				origin= randomSquare(aiArmies, 1);
+			}
+			origin.addArmy(1);
+		}
+		if (type == "Supply Shortage") {
+			if (tribe == player) {
+				if (playerArmies.size() <= 2) return;
+				origin= randomSquare(playerArmies, 5);
+			} else {
+				if (aiArmies.size() <= 2) return;
+				origin= randomSquare(aiArmies, 5);
+			}
+			if (origin.army < 2) {
+				origin.setArmy(0);
+			} else {
+				origin.decreaseArmy(2);
+			}
+
+		}
+		if (tribe == player) {
+			frozen= true;
+			EventWindow E= new EventWindow(type, origin, this);
+		}
+
+	}
+
+	/** Processes the To Pillage or not to Pillage event given the choice plunder that the player made
+	 * If plunder is true then the player chose to pillage, if plunder is false then the player chose
+	 * not to pillage */
+	public void processPlunder(boolean plunder, MapSquare ms) {
+		if (plunder) {
+			ms.decreasePop(2);
+			// grant the player gold
+		} else {
+			ms.increasePop(1);
+		}
+
+	}
+
+	/** Return true if the player is able to lose armies from this tile via an event, return false
+	 * otherwise. The player is able to lose armies iff there are armies to lose, and the player will
+	 * not lose the game off the event
+	 *
+	 * Precondition: currentlySelected is not null */
+	public boolean canPlayerLose() {
+		if (currentlySelected.army > 0 && playerArmies.size() > 1) { return true; }
+		return false;
+
+	}
+
 	/** an allied army has moved into ms, let the battle commence. If the army enters to no resistance
 	 * or the invading army is victorious then change the ownership of this square. */
 	public boolean playerConquest(MapSquare ms) {
+		Random rand= new Random();
 		if (ms.army == 0) {
 			setRollLabels();
 			occupy(ms);
@@ -292,6 +417,8 @@ public class GUI extends JFrame {
 		playerRolls.setText("You rolled: " + attackerRolls);
 		aiRolls.setText("Your opponent rolled: " + defenderRolls);
 		setRollLabels();
+		// Measures the difference between the player's army and the opponent's army
+		int whoWon= currentlySelected.army - ms.army;
 		// Is the defending tile a mountain?
 		boolean feature= ms.feature && ms.pop <= 2;
 		if (attackHost > 1 && defenseHost == 2) {
@@ -312,13 +439,26 @@ public class GUI extends JFrame {
 
 			}
 		}
+		// Check whether a "Cowards" event can occur(ie, if the player lost the battle and has multiple
+		// armies)
+		if (canPlayerLose() && whoWon >= currentlySelected.army - ms.army && rand.nextInt(4) == 0) {
+			currentlySelected.decreaseArmy(1);
+			frozen= true;
+			EventWindow E= new EventWindow("Cowards", currentlySelected, this);
+
+		}
 		// Now the battle has commenced, check whether the defender has any more armies left, then move in
 		// if possible
 		if (ms.army == 0) {
 			occupy(ms);
-			setArmyOwners();
+			if (rand.nextInt(4) == 0) {
+				// Pillage event
+				frozen= true;
+				EventWindow E= new EventWindow("To Pillage or not to Pillage", ms, this);
+			}
 		}
 		currentlySelected= null;
+		setArmyOwners();
 
 		return true;
 	}
@@ -332,6 +472,8 @@ public class GUI extends JFrame {
 		LinkedList<Integer> defenderRolls= rolls(defenseHost, true);
 		playerRolls.setText("You rolled: " + defenderRolls);
 		aiRolls.setText("Your opponent rolled: " + attackerRolls);
+		// Measures the difference between the player's army and the opponent's army
+		int whoWon= as.army - ds.army;
 		// Is the defending tile a mountain?
 		boolean feature= ds.feature && ds.pop <= 2;
 		if (attackHost > 1 && defenseHost == 2) {
@@ -353,6 +495,13 @@ public class GUI extends JFrame {
 				battle(attackerRolls.poll(), defenderRolls.poll(), as, ds);
 
 			}
+		}
+		// Check whether a "Cowards" event can occur(ie, if the computer lost the battle and has multiple
+		// armies)
+		Random rand= new Random();
+		if (aiArmies.size() > 1 && whoWon > as.army - ds.army && rand.nextInt(4) == 0) {
+			as.decreaseArmy(1);
+
 		}
 		if (ds.army == 0) {
 			ds.changeTribe(npc1, Color.RED);
@@ -615,6 +764,33 @@ public class GUI extends JFrame {
 		return accum;
 	}
 
+	/** returns a LinkedList of Mapsquares adjacent to ms */
+	public LinkedList<MapSquare> allAdjacents(MapSquare ms) {
+		LinkedList<MapSquare> accum= new LinkedList<>();
+		for (MapSquare[] a : board) {
+			for (MapSquare b : a) {
+				if (b.isValidInvade(ms)) {
+					accum.add(b);
+				}
+			}
+		}
+		return accum;
+	}
+
+	/** Return the MapSquare in squares with the greatest number of armies present */
+	public MapSquare mostArmies(List<MapSquare> squares) {
+		int accumArmy= 0;
+		MapSquare accumSquare= squares.get(0);
+		for (MapSquare e : squares) {
+			if (accumArmy < e.army) {
+				accumSquare= e;
+				accumArmy= e.army;
+			}
+
+		}
+		return accumSquare;
+	}
+
 	/** Prepare for the player's turn */
 	public void resetPlayerTurn() {
 		currentlySelected= null;
@@ -793,6 +969,7 @@ public class GUI extends JFrame {
 		/** If e is a click in a MapSquare, process it */
 		@Override
 		public void mouseClicked(MouseEvent e) {
+			if (frozen) return;
 
 			Object ob= e.getSource();
 			if (ob instanceof MapSquare &&
