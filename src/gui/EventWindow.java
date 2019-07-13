@@ -13,8 +13,8 @@ import javax.swing.event.MouseInputAdapter;
 public class EventWindow extends JFrame {
 	/** The image associated with the event */
 	public ImageIcon image;
-	/** The box containing the button choices */
-	public Box buttonBox= new Box(BoxLayout.Y_AXIS);
+	/** The box containing the picture and button choices */
+	public Box mainBox= new Box(BoxLayout.Y_AXIS);
 	/** An object that process mouse clicks */
 	private MouseEvents mouseEvent= new MouseEvents();
 	/** The GUI associated with this event */
@@ -26,6 +26,7 @@ public class EventWindow extends JFrame {
 		gui= main;
 		eventSquare= ms;
 		add(new JLabel(type), BorderLayout.NORTH);
+		addPicture(type);
 		addButtons(type);
 		pack();
 		setVisible(true);
@@ -53,6 +54,11 @@ public class EventWindow extends JFrame {
 		return false;
 	}
 
+	/** add the picture needed to represent the event */
+	public void addPicture(String type) {
+		mainBox.add(new JLabel(new ImageIcon("TempEvent.png")));
+	}
+
 	/** add the buttons needed for the type event. If the event doesn't have any choices for the player,
 	 * simply add a close tab button. The boolean good represents whether or not the event is good for
 	 * the player */
@@ -61,25 +67,25 @@ public class EventWindow extends JFrame {
 			if (isGood(type)) {
 				MenuButton mb= new MenuButton("Ahh, good news at last", 400);
 				mb.addMouseListener(mouseEvent);
-				buttonBox.add(mb);
+				mainBox.add(mb);
 			} else {
 				MenuButton mb= new MenuButton("Curses", 400);
 				mb.addMouseListener(mouseEvent);
-				buttonBox.add(mb);
+				mainBox.add(mb);
 			}
 
 		} else {
 			if (type == "To Pillage or not to Pillage") {
 				MenuButton mb= new MenuButton("Pillage", 401);
 				mb.addMouseListener(mouseEvent);
-				buttonBox.add(mb);
+				mainBox.add(mb);
 				mb= new MenuButton("Don't Pillage", 402);
 				mb.addMouseListener(mouseEvent);
-				buttonBox.add(mb);
+				mainBox.add(mb);
 			}
 
 		}
-		add(buttonBox, BorderLayout.SOUTH);
+		add(mainBox, BorderLayout.SOUTH);
 
 	}
 

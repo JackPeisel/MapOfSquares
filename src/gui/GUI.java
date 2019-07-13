@@ -2,6 +2,8 @@ package gui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -10,6 +12,7 @@ import java.util.Random;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.SwingUtilities;
@@ -22,39 +25,86 @@ public class GUI extends JFrame {
 	/** A list of all possible events that can occur at the start of a turn */
 	public static final ArrayList<String> randomEvents= new ArrayList<>();
 	public ArrayList<String> currentRandomEvents= new ArrayList<>();
-	private MouseEvents mouseEvent= new MouseEvents(); // object that processes mouse clicks
+	/** object that processes mouse clicks */
+	private MouseEvents mouseEvent= new MouseEvents();
+	/** object that process keystrokes */
+	private KeyEvents keyEvent= new KeyEvents();
+	/** The JLabel indicating which tribe owns the most recently clicked MapSquare */
 	private JLabel tribeName= new JLabel("Tribe Name:               ");
+	/** The JLabel indicating the population of the most recently clicked MapSquare */
 	private JLabel squarePop= new JLabel("Province Population:             ");
+	/** The JLabel indicating the number of armies on the most recently clicked MapSquare */
 	private JLabel armyCount= new JLabel("Armies Present:              ");
+	/** The JLabel displaying what the computer chose to do with the first move of its turn */
 	private JLabel aiTurn1= new JLabel("The computer elected to first:FILLER TEXT");
+	/** The JLabel displaying what the computer chose to do with the second move of its turn */
 	private JLabel aiTurn2= new JLabel("Then the computer elected to:FILLER TEXT");
+	/** The JLabel displaying what the player most recently rolled in battle; only visible if a battle
+	 * has recently occurred */
 	private JLabel playerRolls= new JLabel("You rolled:");
+	/** The JLabel displaying what the computer most recently rolled in battle; only visible if a battle
+	 * has recently occurred */
 	private JLabel aiRolls= new JLabel("Your opponent rolled:");
+	/** The JLabel displaying how much gold the player has; exists in the player info box */
+	private JLabel playerGold= new JLabel("You have 0 gold");
+	/** The JLabel displaying the player's name; exists in the player info box */
+	private JLabel playerNameLabel= new JLabel("");
+	/** The MenuButton used to create a new army; found in the infoBox */
 	private MenuButton buildArmy= new MenuButton("Build a basic army?", 0);
+	/** The MenuButton that starts the game from the nation selection screen */
 	private MenuButton startGame= new MenuButton("CLICK HERE TO START A NEW GAME", 1);
+	/** The MenuButton that appears when the player runs out of moves. Pressing clickTurn ends the
+	 * player's turn */
 	private MenuButton clickTurn= new MenuButton("Next Turn?", 2);
+	/** The JLabel containing the image representing the player's nation */
 	private JLabel nationPic= new JLabel(player.image);
+	/** The player's Tribe */
 	public static Tribe player= new Tribe("Player1", 1);
+	/** The computer's Tribe */
 	public static Tribe npc1= new Tribe("AI", -1);
+	/** A list of the MapSquares where player armies are present
+	 *
+	 * Note: If the player builds a new army on a MapSquare not in playerArmies on their turn, that
+	 * MapSquare will not be added to playerArmies until the end of the player's turn */
 	public ArrayList<MapSquare> playerArmies= new ArrayList<>();
+	/** A list of the MapSquares that the player controls */
 	public ArrayList<MapSquare> playerTiles= new ArrayList<>();
+	/** A list of the MapSquares that the computer controls */
 	public ArrayList<MapSquare> aiTiles= new ArrayList<>();
+	/** A list of the MapSquares where computer controlled armies are present */
 	public ArrayList<MapSquare> aiArmies= new ArrayList<>();
-
 	/** The Mapsquare which is currently selected by the player or computer opponent. null if there is
 	 * not currently selected square */
 	private MapSquare currentlySelected= null;
-
-	MapSquare[][] board;
+	/** A 2d array of MapSquares containing the layout of the game board */
+	public MapSquare[][] board;
+	/** The Box containing the game board(ie the MapSquares) */
 	private Box boardBox= new Box(BoxLayout.Y_AXIS);
+	/** The Box containing game info for the player. More specifically it contains information like what
+	 * the player and computer roll during battle, buttons to proceed to the next turn and build armies,
+	 * and information on the most recently selected square */
 	private Box infoBox= new Box(BoxLayout.Y_AXIS);
+	/** CURRENTLY NOT IMPLEMENTED. The Box containing information on the player */
+	private Box playerInfoBox= new Box(BoxLayout.Y_AXIS);
+	/** The Box containing the all aspects of the game the player plays. In other words, contains the
+	 * boardBox, infoBox, and playerInfoBox */
 	private Box mainGameBox= new Box(BoxLayout.X_AXIS);
+	/** A Box contained within infoBox which stores the next turn and build army buttons */
 	private Box buttonBox= new Box(BoxLayout.Y_AXIS);
+	/** A Box contained within infoBox which stores the JLabels that inform the player what the computer
+	 * did on its turn. Specifically those JLabels are aiTurn1 and aiTurn2 */
 	private Box turnBox= new Box(BoxLayout.Y_AXIS);
+	/** The Box contained within infoBox that contains the player's and computer's rolls from a battle.
+	 * If no battle has taken place recently then this box is not visible */
 	private Box rollBox= new Box(BoxLayout.Y_AXIS);
+	/** The Box containing the nation selection screen */
 	private Box startBox= new Box(BoxLayout.Y_AXIS);
+	/** The Box containing the startButtonBox and the nation's picture */
 	private Box startChoiceBox= new Box(BoxLayout.X_AXIS);
+	/** The Box containing the nation selection buttons */
 	private Box startButtonBox= new Box(BoxLayout.Y_AXIS);
+	/** The Box containing the welcome screen and instructions for the player on how to play the game */
+	private Box instructionBox= new Box(BoxLayout.Y_AXIS);
 	/** A representation of whose turn it is currently in the game turn 0 means it is the player's turn,
 	 * turn 1 means it is the computer's turn. turn= -1 means the game has not started yet */
 	public int turn= -1;
@@ -70,17 +120,70 @@ public class GUI extends JFrame {
 	public int movesRemaining= 2;
 	/** A boolean representing whether the game is frozen(typically by an event) */
 	public boolean frozen= false;
+	/** The title of the nation the player is playing */
+	public String playerName= "";
+	/** The TempSquare which holds the player's profile picture */
+	public TempSquare playerImage;
 
 	public GUI() {
+		addKeyListener(keyEvent);
+		playerName= "Nation1";
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		addPlayerInfo();
 		addSquares();
 		// newInstance(); don't call this here as any start game bonuses will be messed up
 		addStart();
 		addEvents();
-		add(startBox, BorderLayout.CENTER);
+		// add(startBox, BorderLayout.CENTER);
+		startBox.setVisible(false);
 		mainGameBox.setVisible(false);
+		addInstructions();
+		add(instructionBox, BorderLayout.CENTER);
 		pack();
 		setVisible(true);
+
+	}
+
+	/** Set up the instructions info screen */
+	public void addInstructions() {
+		instructionBox.addMouseListener(mouseEvent);
+		ImageIcon intro= new ImageIcon("introScreen.png");
+		instructionBox.add(new JLabel(intro));
+
+	}
+
+	/** Closes the instruction window and open the character selection screen */
+	public void closeInstructions() {
+		startBox.setVisible(true);
+		remove(instructionBox);
+		add(startBox, BorderLayout.CENTER);
+		pack();
+
+	}
+
+	/** Set up the player info screen */
+	public void addPlayerInfo() {
+		/*
+		playerNameLabel.setText(playerName);
+		playerInfoBox.add(playerNameLabel);
+		TempSquare temp= new TempSquare(Color.BLUE);
+		playerImage= temp;
+		playerInfoBox.add(playerImage);
+		playerInfoBox.add(playerGold);
+		mainGameBox.add(playerInfoBox);
+		*/
+
+	}
+
+	/** Updates the player info box */
+	public void updatePlayerInfo() {
+		System.out.println("dog");
+		if (playerName == "Nation2") {
+			System.out.println("Never sell");
+			playerImage= new TempSquare(Color.YELLOW);
+		} else if (playerName == "Nation" + 3) {
+			playerImage= new TempSquare(Color.CYAN);
+		}
 
 	}
 
@@ -260,6 +363,7 @@ public class GUI extends JFrame {
 			remove(startBox);
 			turn= 0;
 			add(mainGameBox, BorderLayout.CENTER);
+			updatePlayerInfo();
 			pack();
 
 		}
@@ -269,6 +373,9 @@ public class GUI extends JFrame {
 		}
 		if (mb.TYPE > 29 && mb.TYPE < 40) {
 			int temp= mb.TYPE - 30;
+			playerName= "Nation" + temp;
+			System.out.println(playerName);
+			playerNameLabel.setText(playerName);
 			player.changeTribe(temp);
 			startChoiceBox.remove(nationPic);
 			nationPic= new JLabel(player.image);
@@ -964,7 +1071,7 @@ public class GUI extends JFrame {
 		GUI c= new GUI();
 	}
 
-	/** Class contains a method that responds to a mouse click in a CheckerSquare */
+	/** Class contains a method that responds to a mouse click */
 	class MouseEvents extends MouseInputAdapter {
 		/** If e is a click in a MapSquare, process it */
 		@Override
@@ -985,8 +1092,37 @@ public class GUI extends JFrame {
 				showNext();
 				return;
 			}
+			if (ob == instructionBox) {
+				closeInstructions();
+			}
 			System.out.println("failure");
 
+		}
+
+	}
+
+	/** Class contains a method that responds to a keystroke */
+	class KeyEvents implements KeyListener {
+
+		@Override
+		public void keyPressed(KeyEvent e) {
+			System.out.println("in keypressed method");
+			char key= e.getKeyChar();
+			if (key == 'H' || key == 'h') {
+				System.out.println("It just works");
+				InstructionWindow iw= new InstructionWindow(GUI.this);
+			}
+
+		}
+
+		@Override
+		public void keyReleased(KeyEvent e) {
+			// filler text
+		}
+
+		@Override
+		public void keyTyped(KeyEvent e) {
+			// filler text
 		}
 
 	}

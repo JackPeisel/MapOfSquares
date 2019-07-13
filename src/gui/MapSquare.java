@@ -29,9 +29,10 @@ public class MapSquare extends Canvas {
 	public int pop;
 	/** True if mountains and etc are present, false otherwise */
 	public boolean feature= coinFlip();
-
+	/** A rectangle representing the MapSquare */
 	public Rectangle b;
 
+	/** Initialize a MapSquare at row r and column c */
 	public MapSquare(int r, int c) {
 		row= r;
 		col= c;
