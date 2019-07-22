@@ -5,6 +5,9 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Rectangle;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 
 import game.Tribe;
@@ -172,6 +175,99 @@ public class MapSquare extends Canvas {
 	/** return true if this tile has no armies present on it */
 	public boolean isEmpty() {
 		return army == 0;
+	}
+
+	/** Processes the To Pillage or not to Pillage event given the choice plunder that the player made
+	 * If plunder is true then the player chose to pillage, if plunder is false then the player chose
+	 * not to pillage */
+	public void processPlunder(boolean plunder) {
+		if (plunder) {
+			decreasePop(2);
+			// grant the player gold
+		} else {
+			increasePop(1);
+		}
+
+	}
+
+	/** returns a list of adjacent, empty squares to square ms in GUI gui */
+	public static ArrayList<MapSquare> validAdjacents(MapSquare ms, GUI gui) {
+		ArrayList<MapSquare> accum= new ArrayList<>();
+		for (MapSquare[] a : gui.board) {
+			for (MapSquare b : a) {
+				if (b != gui.currentlySelected && b.isEmpty() && b.isValidInvade(ms)) accum.add(b);
+			}
+
+		}
+		Random rand= new Random();
+		if (accum.size() == 0) return null;
+		return accum;
+	}
+
+	/** returns a square with army armies on it that is adjacent to ms in GUI gui */
+	public static ArrayList<MapSquare> validAdjacents(MapSquare ms, int army, GUI gui) {
+		ArrayList<MapSquare> accum= new ArrayList<>();
+		for (MapSquare[] a : gui.board) {
+			for (MapSquare b : a) {
+				if (b != gui.currentlySelected && b.army == army && b.isValidInvade(ms)) accum.add(b);
+			}
+
+		}
+		Random rand= new Random();
+		if (accum.size() == 0) return null;
+		return accum;
+
+	}
+
+	/** returns a list of adjacent, empty squares to square ms that are not of tribe t in GUI gui */
+	public static ArrayList<MapSquare> validAdjacents(MapSquare ms, Tribe t, GUI gui) {
+		ArrayList<MapSquare> accum= new ArrayList<>();
+		for (MapSquare[] a : gui.board) {
+			for (MapSquare b : a) {
+				if (b.tribe != t && b != gui.currentlySelected && b.isEmpty() && b.isValidInvade(ms)) accum.add(b);
+
+			}
+
+		}
+		Random rand= new Random();
+		if (accum.size() == 0) return null;
+		return accum;
+	}
+
+	/** returns a LinkedList of Mapsquares adjacent to ms in the GUI gui */
+	public static LinkedList<MapSquare> allAdjacents(MapSquare ms, GUI gui) {
+		LinkedList<MapSquare> accum= new LinkedList<>();
+		for (MapSquare[] a : gui.board) {
+			for (MapSquare b : a) {
+				if (b.isValidInvade(ms)) {
+					accum.add(b);
+				}
+			}
+		}
+		return accum;
+	}
+
+	/** Return the MapSquare in list squares with the greatest number of armies present */
+	public static MapSquare mostArmies(List<MapSquare> squares) {
+		int accumArmy= 0;
+		MapSquare accumSquare= squares.get(0);
+		for (MapSquare e : squares) {
+			if (accumArmy < e.army) {
+				accumSquare= e;
+				accumArmy= e.army;
+			}
+
+		}
+		return accumSquare;
+	}
+
+	/** Return a MapSquare from list that has army armies present on it. If list does not contain any
+	 * MapSquares with army armies present then return the square with the most armies present */
+	public static MapSquare randomSquare(List<MapSquare> list, int army) {
+		for (MapSquare e : list) {
+			if (e.army == army) { return e; }
+		}
+		return mostArmies(list);
 	}
 
 }

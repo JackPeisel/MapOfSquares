@@ -56,7 +56,7 @@ public class EventWindow extends JFrame {
 
 	/** add the picture needed to represent the event */
 	public void addPicture(String type) {
-		mainBox.add(new JLabel(new ImageIcon("TempEvent.png")));
+		mainBox.add(new JLabel(new ImageIcon("resources/TempEvent.png")));
 	}
 
 	/** add the buttons needed for the type event. If the event doesn't have any choices for the player,
@@ -97,7 +97,7 @@ public class EventWindow extends JFrame {
 		}
 		// To Pillage or not to Pillage
 		if (mb.TYPE == 401 || mb.TYPE == 402) {
-			gui.processPlunder(mb.TYPE == 401 ? true : false, eventSquare);
+			eventSquare.processPlunder(mb.TYPE == 401 ? true : false);
 			delete();
 
 		}

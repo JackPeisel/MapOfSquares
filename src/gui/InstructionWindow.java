@@ -8,9 +8,9 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 
 public class InstructionWindow extends JFrame {
-	private static final JLabel page1= new JLabel(new ImageIcon("detailed1.png"));
-	private static final JLabel page2= new JLabel(new ImageIcon("detailed2.png"));
-	private static final JLabel page3= new JLabel(new ImageIcon("detailed3.png"));
+	private static final JLabel page1= new JLabel(new ImageIcon("resources/detailed1.png"));
+	private static final JLabel page2= new JLabel(new ImageIcon("resources/detailed2.png"));
+	private static final JLabel page3= new JLabel(new ImageIcon("resources/detailed3.png"));
 	/** The page of the instructions that is currently being displayed */
 	private JLabel page= page1;
 	/** object that process keystrokes */
@@ -73,7 +73,7 @@ public class InstructionWindow extends JFrame {
 			} else if (key == KeyEvent.VK_LEFT) {
 				goBackward();
 			} else if (pageNumber == maxPage && key == KeyEvent.VK_SPACE) {
-				gui.closeInstructions();
+				BoardInit.closeInstructions(gui);
 				setVisible(false);
 				dispose();
 			}
